@@ -14,7 +14,7 @@ This app will check if provided username/password is correct.
 
 ` pkg install git && pkg install nano` 
 
-` git clone https://github.com/Lakhac/hotstar-checker `
+` git clone https://github.com/just-hacked/hotstar-checker `
 
 ` cd hotstar-checker `
 
